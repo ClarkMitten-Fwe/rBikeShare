@@ -7,7 +7,7 @@ output: html_notebook
 library(ggplot2)
 library(data.table)
 library(lubridate)
-#tic toc pacage times processes. I use this to test my code and decide if I want to look for a more efficient alternative
+
 
 #before loading files into data frames I decided I wanted to work with one full data set so I opted to add two column to the Washington data set to allow for easy merging
 # I completed this process using read.csv() and merge(). this method took 19.9 seconds
