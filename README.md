@@ -11,5 +11,5 @@ Git project for udacity Programming for Data Science
 udacityBikeShare.rmd
 
 ### Credits
-
+Credit to flywheel for encouraging learning
 
