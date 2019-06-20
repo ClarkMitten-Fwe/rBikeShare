@@ -8,13 +8,11 @@ library(ggplot2)
 library(data.table)
 library(lubridate)
 #tic toc pacage times processes. I use this to test my code and decide if I want to look for a more efficient alternative
-library(tictoc)
+
 #before loading files into data frames I decided I wanted to work with one full data set so I opted to add two column to the Washington data set to allow for easy merging
 # I completed this process using read.csv() and merge(). this method took 19.9 seconds
 
 #looking for a faster alternative using data.table package Able to read in all files in under 2 seconds.
-tic()
-tic()
 
 
 #merge files
@@ -44,7 +42,7 @@ wash$travelTime <- difftime(wash$`End Time`,wash$`Start Time`,units = "secs")/60
 data<- rbindlist(list(chi,wash,ny))
 data$month <- months(data$`Start Time`)
 
-toc()
+
 
 
 ```
@@ -136,7 +134,7 @@ qplot(x = q4$`User Type`, y = travelTime, data = subset(q4, !is.na(`User Type`))
   labs(x = "City", y = "Travel Time in Minutes") 
 
 print('The user class customers have nearly twice the mean trip time of subscribers. Presumably a customer is a one time or infrequent user of the service whereas a subscriber may be using on a much more regular basis. It seems like a fair hypothesis to say customers are using the bike for leisure activities while subscribers may be using for commute or defined tasks which would most likely cause the shorter trips.')
-toc()
+
 
 ```
 
