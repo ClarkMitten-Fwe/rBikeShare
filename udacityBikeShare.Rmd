@@ -1,0 +1,142 @@
+---
+title: "Udacity BikeShare Poject"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(data.table)
+library(lubridate)
+#tic toc pacage times processes. I use this to test my code and decide if I want to look for a more efficient alternative
+library(tictoc)
+#before loading files into data frames I decided I wanted to work with one full data set so I opted to add two column to the Washington data set to allow for easy merging
+# I completed this process using read.csv() and merge(). this method took 19.9 seconds
+
+#looking for a faster alternative using data.table package Able to read in all files in under 2 seconds.
+tic()
+tic()
+
+
+#merge files
+
+chi <- data.table::fread('c:/users/clark.mitten/desktop/udacityBikeShare/chicago.csv')
+chi$city <- 'Chicago'
+chi$`Start Time` <- ymd_hms(chi$`Start Time`)
+chi$`End Time` <- ymd_hms(chi$`End Time`)
+chi$travelTime <- difftime(chi$`End Time`,chi$`Start Time`,units = "secs")/60
+ny <- data.table::fread('c:/users/clark.mitten/desktop/udacityBikeShare/new-york-city.csv')
+ny$city <- 'NYC'
+ny$`Start Time` <- ymd_hms(ny$`Start Time`)
+ny$`End Time` <- ymd_hms(ny$`End Time`)
+ny$travelTime <- difftime(ny$`End Time`,ny$`Start Time`,units = "secs")/60
+
+wash <- data.table::fread('c:/users/clark.mitten/desktop/udacityBikeShare/washington.csv')
+wash$city <- 'Washington'
+
+#clean up washington dates
+
+wash$`Start Time`<- ymd_hm(format(parse_date_time(wash$`Start Time`,orders = 'mdy HM'),format = '%Y/%m/%d %H:%M'))
+wash$`End Time`<- ymd_hm(format(parse_date_time(wash$`End Time`,orders = 'mdy HM'),format = '%Y/%m/%d %H:%M'))
+
+wash$travelTime <- difftime(wash$`End Time`,wash$`Start Time`,units = "secs")/60
+
+#combine the three data frames
+data<- rbindlist(list(chi,wash,ny))
+data$month <- months(data$`Start Time`)
+
+toc()
+
+
+```
+
+```{r}
+#Question 1: What is mean travel time by month across all cities? 
+
+
+by(as.numeric(data$travelTime),data$month,summary)
+
+ggplot(data) +
+  geom_bar(aes(month,travelTime),stat= 'summary',fun.y = 'mean') +
+  scale_x_discrete() +
+  ggtitle('Mean Travel Time by Month') +
+  labs(x = 'Travel Time in Minutes', y = 'Count of Trips')
+
+print('Unsurprisingly June has the highest mean travel time in the dataset.  Since the dataset only includes the first 6 months of the year June is easily the warmest month in the dataset and makes sense that it would have the longer bike trips')
+```
+
+```{r}
+#Question 2 What routes are the most common and which round trip routes are the most common
+
+#found the count of each unique start and end stations
+df <- data.frame(aggregate(paste(`Start Station`,`End Station`) ~ data$`Start Station`+ data$`End Station`,data = data, FUN = length))
+#rerturn the 10 most common
+head(df[order(df$paste..Start.Station....End.Station..,decreasing=TRUE), ], 10)
+print(paste('The most common trip is Lake Shore Dr & Monroe St to Streeter Dr & Grand Ave with ', round((854/900000) * 100, digits =  4), '% of the total trips taking this route.  Interestingly 2 of the top 3 trips are round trips. Next I will look into how often round trips are occurring and which are the most common'))
+
+#added for easy filtering to find the most common round trip routes
+library(dplyr)
+dp <- df %>%
+  filter(data..Start.Station. == data..End.Station.)
+head(dp[order(dp$paste..Start.Station....End.Station..,decreasing = TRUE), ], 50)
+print('I was surprised by the amount of round trips that are occurring.  I figured that would be much less frequent as people would be taking these bikes for a trip.  This might be something to do with the different user types that I will look into later.')
+```
+
+```{r}
+#Question 3: What are the most frequent trip lengths and how does it break down by city?
+ggplot(aes(x = as.numeric(travelTime)), data = subset(data, !is.na(`travelTime`))) +
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = seq(1,45,1), lim = c(0,45)) +
+   ggtitle('Histogram of Minutes per Trip') +
+  labs(x = "Time in Minutes") 
+print('The largest bin is the 6-7 minute trip length with nearly 60,000 trips lasting this duration')
+
+#taking a look at the majority of the dataset
+qplot(x = city, y = travelTime, data = subset(data, !is.na(`travelTime`)), geom = 'boxplot') +
+  coord_cartesian(ylim = c(0,150)) +
+  ggtitle('Box Plot of Minutes per Trip by City') +
+  labs(x = "City", y = "Travel Time in Minutes") 
+
+#zooming in to better see which cities have the highest mean and  largest middle 50% ranges
+qplot(x = city, y = travelTime, data = subset(data, !is.na(`travelTime`)), geom = 'boxplot') +
+  coord_cartesian(ylim = c(0,20)) +
+  ggtitle('Box Plot of Minutes per Trip by City') +
+  labs(x = "City", y = "Travel Time in Minutes") 
+
+print('Chicago just barely edges Washington in average trip time. The three cities have very similar trip times across the board.  Washington has the highest 75% range at right around 20 minutes.  NYC has the lowest 75% range with that level occuring at ~ 17.5 minutes.' )
+```
+
+```{r}
+#Question 4: Which gender uses the bike service most? Do subscribers average longer rides than customers?
+
+#needed to adjust scales of y axis and limit the use of scientific notation
+require(scales)
+
+#use data frame indexing to remove Washington values from data set
+q4 <- data[data$city != 'Washington',]
+
+#use data frame indexing to remove blank values that are not NA from the dataset
+q4 <- q4[q4$Gender != '',]
+
+ggplot(q4) +
+  geom_bar(aes(Gender),stat= 'count') +
+  scale_x_discrete() +
+  scale_y_continuous(labels = scales::comma) +
+  ggtitle('Count of Bike Trips By Gender')
+
+print('Males are far and away the largest group of users accross NYC and Chicago datasets')
+
+#rebuild data set and get rid of blank user types this time
+q4 <- data[data$city != 'Washington',]
+
+q4 <- q4[q4$`User Type` != '',]
+
+qplot(x = q4$`User Type`, y = travelTime, data = subset(q4, !is.na(`User Type`)), geom = 'boxplot') +
+  coord_cartesian(ylim = c(0,80)) +
+  ggtitle('Box Plot of Minutes per Trip by User Type') +
+  labs(x = "City", y = "Travel Time in Minutes") 
+
+print('The user class customers have nearly twice the mean trip time of subscribers. Presumably a customer is a one time or infrequent user of the service whereas a subscriber may be using on a much more regular basis. It seems like a fair hypothesis to say customers are using the bike for leisure activities while subscribers may be using for commute or defined tasks which would most likely cause the shorter trips.')
+toc()
+
+```
+
