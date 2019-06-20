@@ -56,8 +56,8 @@ by(as.numeric(data$travelTime),data$month,summary)
 ggplot(data) +
   geom_bar(aes(month,travelTime),stat= 'summary',fun.y = 'mean') +
   scale_x_discrete() +
-  ggtitle('Mean Travel Time by Month') +
-  labs(x = 'Travel Time in Minutes', y = 'Count of Trips')
+  ggtitle('Avg Travel Time by Month') +
+  labs(x = 'Travel Time in Minutes', y = '# of Trips')
 
 print('Unsurprisingly June has the highest mean travel time in the dataset.  Since the dataset only includes the first 6 months of the year June is easily the warmest month in the dataset and makes sense that it would have the longer bike trips')
 ```
